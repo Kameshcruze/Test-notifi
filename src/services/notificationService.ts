@@ -1,9 +1,14 @@
 /**
  * Service to manage Web Notifications, Service Worker registration,
- * and audio chime feedback across mobile and desktop browsers.
+ * and audio chime feedback across mobile (Android & iOS) and desktop browsers.
  */
 
-export type NotificationPermissionState = 'granted' | 'denied' | 'default' | 'unsupported';
+export type NotificationPermissionState =
+  | 'granted'
+  | 'denied'
+  | 'default'
+  | 'unsupported'
+  | 'ios-requires-pwa';
 
 export interface SendNotificationOptions {
   title: string;
@@ -12,6 +17,7 @@ export interface SendNotificationOptions {
   vibrate?: boolean;
   playSound?: boolean;
   tag?: string;
+  allowInAppFallback?: boolean;
 }
 
 export interface NotificationLogItem {
@@ -20,16 +26,41 @@ export interface NotificationLogItem {
   title: string;
   body: string;
   timestamp: Date;
-  deliveryMethod: 'service-worker' | 'standard-api' | 'simulated';
+  deliveryMethod: 'service-worker' | 'standard-api' | 'in-app-toast' | 'simulated';
   visibilityState: 'foreground' | 'background';
   success: boolean;
   error?: string;
 }
 
+/**
+ * Detect Apple iOS devices (iPhone, iPad, iPod)
+ */
+export function isIOS(): boolean {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent.toLowerCase();
+  return (
+    /iphone|ipad|ipod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+}
+
+/**
+ * Detect if web app is running in Standalone PWA mode (added to home screen)
+ */
+export function isStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
+
 // Audio chime using Web Audio API (no external mp3 dependency required)
 export function playChime() {
   try {
-    const AudioContextClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass) return;
 
     const ctx = new AudioContextClass();
@@ -83,12 +114,21 @@ export function isServiceWorkerSupported(): boolean {
 }
 
 /**
- * Get the current permission state
+ * Get the current permission state, with special detection for iOS browser tabs
  */
 export function getPermissionState(): NotificationPermissionState {
+  // Apple iOS Safari / Chrome tab check:
+  // Apple only enables Notification API if the app is added to Home Screen (iOS 16.4+)
+  if (isIOS() && !isStandalone()) {
+    if (!isNotificationSupported()) {
+      return 'ios-requires-pwa';
+    }
+  }
+
   if (!isNotificationSupported()) {
     return 'unsupported';
   }
+
   return Notification.permission;
 }
 
@@ -96,13 +136,28 @@ export function getPermissionState(): NotificationPermissionState {
  * Request notification permission from the user
  */
 export async function requestPermission(): Promise<NotificationPermissionState> {
+  // If on iOS and not yet installed to home screen
+  if (isIOS() && !isStandalone() && !isNotificationSupported()) {
+    return 'ios-requires-pwa';
+  }
+
   if (!isNotificationSupported()) {
     return 'unsupported';
   }
 
   try {
-    const result = await Notification.requestPermission();
-    return result;
+    const promise = Notification.requestPermission();
+    if (promise && typeof promise.then === 'function') {
+      const result = await promise;
+      return result;
+    } else {
+      // Legacy callback support for older WebKit
+      return new Promise((resolve) => {
+        Notification.requestPermission((result) => {
+          resolve(result);
+        });
+      });
+    }
   } catch (error) {
     console.error('Error requesting notification permission:', error);
     return Notification.permission || 'denied';
@@ -135,12 +190,12 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 }
 
 /**
- * Deliver a notification using the Service Worker (required on Android Chrome)
- * or fallback to standard new Notification()
+ * Deliver a notification using the Service Worker (required on Android Chrome and iOS PWA)
+ * or fallback to standard new Notification() or in-app toast
  */
 export async function deliverNotification(
   options: SendNotificationOptions
-): Promise<{ success: boolean; method: 'service-worker' | 'standard-api' | 'simulated'; error?: string }> {
+): Promise<{ success: boolean; method: 'service-worker' | 'standard-api' | 'in-app-toast' | 'simulated'; error?: string }> {
   if (options.playSound) {
     playChime();
   }
@@ -157,7 +212,7 @@ export async function deliverNotification(
     },
   };
 
-  // 1. Try Service Worker showNotification (crucial for Chrome on Android)
+  // 1. Try Service Worker showNotification (Crucial for Android Chrome & iOS PWA 16.4+)
   if (isServiceWorkerSupported()) {
     try {
       const reg = cachedRegistration || (await navigator.serviceWorker.ready);
@@ -170,7 +225,7 @@ export async function deliverNotification(
     }
   }
 
-  // 2. Try Standard Notification API constructor (desktop / some mobile browsers)
+  // 2. Try Standard Notification API constructor (desktop / supported mobile)
   if (isNotificationSupported() && Notification.permission === 'granted') {
     try {
       const notification = new Notification(options.title, notificationOptions);
@@ -182,13 +237,17 @@ export async function deliverNotification(
     } catch (apiError) {
       const msg = apiError instanceof Error ? apiError.message : String(apiError);
       console.error('Standard Notification constructor failed:', apiError);
-      return { success: false, method: 'standard-api', error: msg };
     }
+  }
+
+  // 3. If in-app fallback allowed (e.g. iOS Safari browser tab before Add to Home Screen)
+  if (options.allowInAppFallback) {
+    return { success: true, method: 'in-app-toast' };
   }
 
   return {
     success: false,
     method: 'simulated',
-    error: 'Notification permission not granted or API not supported',
+    error: 'Notification permission not granted or API not supported on this browser tab',
   };
 }

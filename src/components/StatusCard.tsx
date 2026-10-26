@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, XCircle, AlertTriangle, Cpu, Eye, Radio, BellRing } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Cpu, Eye, Radio, BellRing, Smartphone } from 'lucide-react';
 import { NotificationPermissionState } from '../services/notificationService';
 
 interface StatusCardProps {
@@ -8,6 +8,9 @@ interface StatusCardProps {
   isScheduleRunning: boolean;
   intervalSeconds: number;
   visibilityState: 'foreground' | 'background';
+  isIOSDevice: boolean;
+  onOpenIOSGuide: () => void;
+  inAppModeActive: boolean;
 }
 
 export const StatusCard: React.FC<StatusCardProps> = ({
@@ -16,8 +19,12 @@ export const StatusCard: React.FC<StatusCardProps> = ({
   isScheduleRunning,
   intervalSeconds,
   visibilityState,
+  isIOSDevice,
+  onOpenIOSGuide,
+  inAppModeActive,
 }) => {
   const isEnabled = permission === 'granted';
+  const isIOSRequiresPWA = permission === 'ios-requires-pwa';
 
   return (
     <div className="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 sm:p-5 shadow-xl relative overflow-hidden">
@@ -33,6 +40,10 @@ export const StatusCard: React.FC<StatusCardProps> = ({
             className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
               isEnabled
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                : inAppModeActive
+                ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                : isIOSRequiresPWA
+                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
                 : permission === 'denied'
                 ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
                 : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
@@ -40,6 +51,10 @@ export const StatusCard: React.FC<StatusCardProps> = ({
           >
             {isEnabled ? (
               <CheckCircle2 className="w-5 h-5" />
+            ) : inAppModeActive ? (
+              <CheckCircle2 className="w-5 h-5" />
+            ) : isIOSRequiresPWA ? (
+              <Smartphone className="w-5 h-5" />
             ) : permission === 'denied' ? (
               <XCircle className="w-5 h-5" />
             ) : (
@@ -55,6 +70,17 @@ export const StatusCard: React.FC<StatusCardProps> = ({
                 <span className="text-emerald-400 flex items-center gap-1.5">
                   Notifications Enabled
                 </span>
+              ) : inAppModeActive ? (
+                <span className="text-blue-400 flex items-center gap-1.5">
+                  In-App Notification Mode
+                </span>
+              ) : isIOSRequiresPWA ? (
+                <button
+                  onClick={onOpenIOSGuide}
+                  className="text-amber-300 hover:text-amber-200 underline text-left flex items-center gap-1 cursor-pointer"
+                >
+                  <span>iOS: Add to Home Screen</span>
+                </button>
               ) : permission === 'denied' ? (
                 <span className="text-rose-400">Notifications Blocked</span>
               ) : (
@@ -92,12 +118,16 @@ export const StatusCard: React.FC<StatusCardProps> = ({
             className={`font-semibold capitalize ${
               isEnabled
                 ? 'text-emerald-400'
+                : inAppModeActive
+                ? 'text-blue-400'
+                : isIOSRequiresPWA
+                ? 'text-amber-400'
                 : permission === 'denied'
                 ? 'text-rose-400'
                 : 'text-amber-400'
             }`}
           >
-            {permission}
+            {isIOSRequiresPWA ? 'PWA Required' : inAppModeActive ? 'In-App Active' : permission}
           </span>
         </div>
 
@@ -135,10 +165,10 @@ export const StatusCard: React.FC<StatusCardProps> = ({
         <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
           <span className="text-slate-400 flex items-center gap-1.5">
             <Radio className="w-3.5 h-3.5 text-slate-400" />
-            Engine:
+            Device / OS:
           </span>
           <span className="font-medium text-slate-300">
-            {isServiceWorkerReady ? 'SW + Worker' : 'Standard API'}
+            {isIOSDevice ? 'Apple iOS' : 'Android / Desktop'}
           </span>
         </div>
       </div>
