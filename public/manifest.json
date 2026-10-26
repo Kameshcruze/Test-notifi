@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "Push Notification Tester",
+  "short_name": "PushTester",
+  "description": "Mobile web application to test mobile push notifications, permission status, intervals, and background behavior.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090d16",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Push Notification Tester",
+  "description": "Mobile-friendly web application to test mobile push notifications, permissions, intervals, and background delivery behavior on Android and desktop browsers.",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

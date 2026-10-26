@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="50%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="bellGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#e2e8f0"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0f172a" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <g filter="url(#shadow)">
+    <!-- Ping ripple circles -->
+    <circle cx="370" cy="140" r="32" fill="#ef4444" opacity="0.95"/>
+    <circle cx="370" cy="140" r="48" fill="none" stroke="#ef4444" stroke-width="6" opacity="0.4"/>
+    <!-- Bell -->
+    <path d="M256 100 C216 100 184 132 184 172 L184 250 C184 270 172 290 152 306 C144 312 148 326 160 326 L352 326 C364 326 368 312 360 306 C340 290 328 270 328 250 L328 172 C328 132 296 100 256 100 Z" fill="url(#bellGrad)"/>
+    <!-- Bell Top Ring -->
+    <path d="M236 102 C236 90 245 80 256 80 C267 80 276 90 276 102" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+    <!-- Clapper -->
+    <path d="M228 336 C228 352 240 364 256 364 C272 364 284 352 284 336" fill="#cbd5e1"/>
+    <!-- Waves -->
+    <path d="M128 200 A160 160 0 0 0 128 280" fill="none" stroke="#93c5fd" stroke-width="16" stroke-linecap="round" opacity="0.8"/>
+    <path d="M384 200 A160 160 0 0 1 384 280" fill="none" stroke="#93c5fd" stroke-width="16" stroke-linecap="round" opacity="0.8"/>
+  </g>
+</svg>
